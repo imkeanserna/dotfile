@@ -1,0 +1,70 @@
+#!/bin/bash
+
+#Get battery percentage
+battery_path="/sys/class/power_supply/BAT1"
+battery_status=$(cat $battery_path/status)
+battery_capacity=$(cat $battery_path/capacity)
+
+#echo "Battery: ${battery_capacity}% (${battery_status})"
+
+# Define icons
+charging_icon=" chrg"  # Nerd Fonts charging icon
+discharging_icon=""  # Nerd Fonts discharging icon
+full_icon=""  # Nerd Fonts full icon
+empty_icon=""  # Nerd Fonts empty icon
+
+# Set default icon and color
+icon=$discharging_icon
+color="#ffffff"  # Default color
+
+# Determine the icon based on battery status
+if [ "$battery_status" == "Charging" ]; then
+    icon=$charging_icon
+    color="#00ff00"  # Green color for charging
+elif [ "$battery_status" == "Full" ]; then
+    icon=$full_icon
+    color="#00ff00"  # Green color for full
+elif [ "$battery_capacity" -le 10 ]; then
+    icon=$empty_icon
+    color="#ff0000"  # Red color for low battery
+fi
+
+# Output the formatted battery status
+#echo "$icon $battery_capacity%"
+
+# Function to interpolate color between two hexadecimal colors
+interpolate_color() {
+    start_color=$1
+    end_color=$2
+    percentage=$3
+
+    start_red=${start_color:1:2}
+    start_green=${start_color:3:2}
+    start_blue=${start_color:5:2}
+
+    end_red=${end_color:1:2}
+    end_green=${end_color:3:2}
+    end_blue=${end_color:5:2}
+
+    red=$(printf "%02x" $(( (16#$start_red + ($percentage * (16#$end_red - 16#$start_red)) / 100 ))))
+    green=$(printf "%02x" $(( (16#$start_green + ($percentage * (16#$end_green - 16#$start_green)) / 100 ))))
+    blue=$(printf "%02x" $(( (16#$start_blue + ($percentage * (16#$end_blue - 16#$start_blue)) / 100 ))))
+
+    echo "#$red$green$blue"
+}
+
+# Determine the color based on battery capacity
+if [ "$battery_capacity" -le 25 ]; then
+    color="#ff0000"  # Red color for <= 25%
+elif [ "$battery_capacity" -le 50 ]; then
+    color=$(interpolate_color "#ff0000" "#00ff00" $(( ($battery_capacity - 25) * 100 / 25 )))
+elif [ "$battery_capacity" -le 80 ]; then
+    color=$(interpolate_color "#00ff00" "#00ff00" $(( ($battery_capacity - 50) * 100 / 30 )))
+else
+    color="#00ff00"  # Green color for >= 80%
+fi
+
+# Output the formatted battery status
+echo "$icon $battery_capacity%"
+echo "$icon $battery_capacity%"
+echo "$color"
